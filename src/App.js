@@ -1,12 +1,14 @@
 import './App.css';
-import React, {useState, useEffect} from "react";
+import React, {useState,useEffect} from "react";
 import { ContractABI, ContractAddress } from "./utils/contractdeets";
 import Header from "./components/Header";
+import Header2 from "./components/Header2";
 import Logo from "./components/Logo";
 import Button from "./components/Button";
-import Header2 from "./components/Header2";
 const ethers = require("ethers");
 const {ethereum} = window;
+const CHAIN_ID = 80001;
+const NETWORK_NAME = "Mumbai";
 
 function App() {
   const [walletAddress, setwalletAddress] = useState(null);
@@ -17,50 +19,58 @@ function App() {
   const [myAddedNumber, setMyAddedNumber] = useState();
   const [mySender, setMyNewSender] = useState();
 
+  const getChainID = async(provider) => {
+    const {chainId} =  await provider.getNetwork();
+    if (chainId !== CHAIN_ID) {
+      window.alert(`Please switch to the ${NETWORK_NAME} network`);
+      throw new Error(`Please switch to the ${NETWORK_NAME} network`);
+    }
+  }
+
   const getEthereumContract = () => {
     if (ethereum) {
       const provider = new ethers.providers.Web3Provider(ethereum);
-      const signer = provider.getSigner();
-      const transactionContract = new ethers.Contract(
-        ContractAddress,
-        ContractABI,
-        signer
-      );
-      return transactionContract;
-    }
+        const signer = provider.getSigner();
+        getChainID(provider);
+        const transactionContract = new ethers.Contract(
+          ContractAddress,
+          ContractABI,
+          signer
+        );
+        return transactionContract;
+      } 
   };
 
-  const latestEvent = () => {
+  const latestEvent = () => { 
     const transactionContract = getEthereumContract(); 
     transactionContract.on("storedNumber",(oldNumber, newNumber, addedNumber, sender) => {
-      setMyOldNumber(Number(oldNumber));
-      setMyNewNumber(Number(newNumber));
-      setMyAddedNumber(Number(addedNumber));
-      setMyNewSender(sender);
-      
+    setMyOldNumber(Number(oldNumber));
+    setMyNewNumber(Number(newNumber));
+    setMyAddedNumber(Number(addedNumber));
+    setMyNewSender(sender);
     });
     };
 
   const storeNum = async () => {
-    try {      
-      const transactionContract = getEthereumContract();
-      const val = await transactionContract.store(myNumber);
-      alert("Transaction Submitted, please wait for confirmation popup");
-      await val.wait()
-      window.confirm("Transaction Confirmed, select Get Last Number or Events");      
-    } catch (error) {
+    try {
+        const transactionContract = getEthereumContract();
+        const val = await transactionContract.store(myNumber);
+        alert("Transaction Submitted, please wait for confirmation popup");
+        await val.wait()
+        window.confirm("Transaction Confirmed, select Get Last Number");
+      } catch (error) {
       console.log(error);
     }
   };
 
-  const getLastNum = async () => {
-    try {      
-      const transactionContract = getEthereumContract();
-      const val = await transactionContract.retrieve();
-      setMyData(val.toString());      
-    } catch (error) {
-      console.log(error);
-    }
+  const getLastNum = async () => {      
+      try {
+          const transactionContract = getEthereumContract();
+          const val = await transactionContract.retrieve();
+          setMyData(val.toString());
+      } catch (error) {
+        console.log(error);
+      }
   };
 
   const ConnectWallet = async () => {
